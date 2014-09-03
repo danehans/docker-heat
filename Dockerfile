@@ -5,12 +5,13 @@
 FROM      systemd_rhel7
 MAINTAINER Daneyon Hansen "daneyonhansen@gmail.com"
 
+RUN curl --url http://173.39.232.144/repo/redhat.repo --output /etc/yum.repos.d/redhat.repo
 RUN yum -y update; yum clean all
-RUN yum -y install git puppet wget
+RUN yum -y install openssl ntp findutils git puppet wget
 
-ADD run.sh /usr/local/bin/run.sh
-RUN chmod 755 /usr/local/bin/run.sh
+ADD start.sh /usr/local/bin/start.sh
+RUN chmod 755 /usr/local/bin/start.sh
 
 EXPOSE 8004
 
-CMD ["/usr/local/bin/run.sh"]
+#CMD ["/usr/local/bin/start.sh"]
