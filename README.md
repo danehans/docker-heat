@@ -17,11 +17,9 @@ Use the [Get Started with Docker Containers in RHEL 7](https://access.redhat.com
 to create your base rhel7 image. Then enable systemd within the rhel7 base image. 
 Use [Running SystemD within a Docker Container](http://rhatdan.wordpress.com/2014/04/30/running-systemd-within-a-docker-container/) to enable SystemD.
 
-The container does not setup Keystone endpoints for Heat. This is a task the Keystone service is responsible for.
+The container does not setup Keystone endpoints for Heat. This is a task the Keystone service is responsible for. Reference the [docker-keystone](https://github.com/danehans/docker-keystone) project or official [OpenStack documentation](http://docs.openstack.org) for details.
 
 Although the container does initialize the database used by Heat, it does not create the database, permissions, etc.. These are responsibilities of the database service.
-
-The container does not include any OpenStack clients. After the Heat container is running, issues Heat commands from a host running the python-heatclient.
 
 Installation
 ------------
@@ -36,9 +34,13 @@ yum install -y git
 git clone https://github.com/danehans/docker-heat.git
 cd docker-heat
 ```
-Edit the heat.conf file according to your deployment needs then build the Heat image. Refer to the OpenStack [Icehouse installation guide](http://docs.openstack.org/icehouse/install-guide/install/yum/content/heat-install.html) for details. Next, build your Docker Heat image.
+Edit the heat.conf file according to your deployment needs. Replace all configuration parameters in the %NAME% format. Refer to the OpenStack [Icehouse installation guide](http://docs.openstack.org/icehouse/install-guide/install/yum/content/heat-install.html) for details. The project includes an example heat.conf named heat.conf.example.
+
+Edit the Keystone credential files named admin-openrc.sh and demo-openrc.sh. Replace all configuration parameters in the %NAME% format.
+
+Build your Docker Heat image.
 ```
-docker build heat .
+docker build -t heat .
 ```
 **Note:** You can safely ignore the following warning messages during the build process:
 
@@ -52,10 +54,10 @@ The image should now appear in your image list:
 REPOSITORY                TAG                 IMAGE ID            CREATED             VIRTUAL SIZE
 heat                      latest              d75185a8e696        3 minutes ago       555 MB
 ```
-Run the Heat container. The example below uses the -h flag to configure the hostame as heat within the container, exposes TCP port 8004 on the Docker host, names the container heat, uses -d to run the container as a daemon. 
+Run the Heat container. The example below uses the -h flag to configure the hostame as heat within the container, exposes TCP ports 8000 and 8004 on the Docker host, names the container heat, uses -d to run the container as a daemon.
 ```
 docker run --privileged -d -h heat -v /sys/fs/cgroup:/sys/fs/cgroup:ro \
--p 8004:8004 --name="heat" heat
+-p 8000:8000 -p 8004:8004 --name="heat" heat
 ```
 **Note:** SystemD requires CAP_SYS_ADMIN capability and access to the cgroup file system within a container. Therefore, --privileged and -v /sys/fs/cgroup:/sys/fs/cgroup:ro are required flags.
 
@@ -65,8 +67,8 @@ Verification
 Verify your Heat container is running:
 ```
 # docker ps
-CONTAINER ID  IMAGE         COMMAND          CREATED             STATUS              PORTS                    NAMES
-96173898fa16  heat:latest   /usr/sbin/init   About an hour ago   Up 51 minutes       0.0.0.0:8004->8004/tcp   heat
+CONTAINER ID  IMAGE         COMMAND          CREATED             STATUS              PORTS                                          NAMES
+96173898fa16  heat:latest   /usr/sbin/init   About an hour ago   Up 51 minutes       0.0.0.0:8000->8000/tcp 0.0.0.0:8004->8004/tcp  heat
 ```
 Access the shell from your container:
 ```
@@ -77,18 +79,29 @@ The command above will provide a process ID of the Heat container that is used i
 # nsenter -m -u -n -i -p -t <PROCESS_ID> /bin/bash
 bash-4.2#
 ```
-From here you can perform limited functions such as viewing the installed RPMs, the heat.conf file, etc..
+From here you can perform limited functions such as viewing installed RPMs, the heat.conf file, etc..
 
 Deploy a Heat Stack
 -------------------
 
 Clone the heat-template repo from Github:
 ```
-git clone https://github.com/openstack/heat-templates.git
+# yum install -y git
+# git clone https://github.com/openstack/heat-templates.git
+```
+Source your Keystone credential file:
+```
+# For the admin user
+# source /root/admin-openrc.sh
+# For the demo user
+# admin-openrc.sh
 ```
 Create a Heat stack. Replace <NET_ID> and <SUBNET_ID> with the Neutron network and subnet IDs used to spawn tenant instances. Replace <ADMIN_KEY> with the name of your Nova keypair. Replace <IMAGE_NAME> with the name of the Glance image used to spawn Nova instances.
+
+**Note:** The example template used below requires an existing Neutron network/subnet, Glance image and Nova keypair. Create these if they do not exist in your deployment. Use the official [Openstack documenttion](http://www.docs.openstack.org) for further assistance.
+
 ```
-heat stack-create test-stack \
+# heat stack-create test-stack \
 --template-file=heat-templates/hot/servers_in_existing_neutron_network_no_floating_ips.yaml \
 --parameters="key_name=<ADMIN_KEY>;image=<IMAGE_NAME>;flavor=m1.tiny;\
 net_id=<NET_ID>;subnet_id=<SUBNET_ID>"
@@ -111,10 +124,10 @@ Can you connect to the OpenStack API endpints from your Docker host and containe
 
 IPtables may be blocking you. Check IPtables rules on the host(s) running the other OpenStack services:
 ```
-iptables -L
+# iptables -L
 ```
 To change iptables rules:
 ```
-vi /etc/sysconfig/iptables
-systemctl restart iptables.service
+# vi /etc/sysconfig/iptables
+# systemctl restart iptables.service
 ```
