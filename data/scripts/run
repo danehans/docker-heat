@@ -1,0 +1,34 @@
+#!/bin/bash
+#
+# Script to create and run docker-heat image.
+#
+set -x
+set -e
+
+# Check for Root user
+if [ "$(id -u)" != "0" ]; then
+    echo "This script must be run as root or with sudo"
+    exit 1
+fi
+
+# Configure the Heat Image Name
+export IMAGE_NAME="${IMAGE_NAME:-heat}"
+
+# Configure the Heat Container Name
+export CONTAINER_NAME="${CONTAINER_NAME:-heat}"
+
+# Configure the Hostname used within the Heat container
+export HOSTNAME="${HOSTNAME:-$HOSTNAME}"
+
+# Configure the Heat Hostname
+export DNS_SEARCH="${DNS_SEARCH:-example.com}"
+
+docker run --privileged -d -h $HOSTNAME --dns-search $DNS_SEARCH -v /sys/fs/cgroup:/sys/fs/cgroup:ro -p 8000:8000 -p 8004:8004 --name="$CONTAINER_NAME" $IMAGE_NAME
+
+# Get the PID of the Heat Container
+CONTAINER_PID="$(docker inspect --format={{.State.Pid}} $CONTAINER_NAME)"
+
+#Use nsenter to enter the namespaces of the running Heat container.
+nsenter -m -u -n -i -p -t $CONTAINER_PID /bin/bash
+
+exit $?
