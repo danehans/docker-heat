@@ -1,0 +1,54 @@
+# Heat
+# VERSION               0.0.1
+# Tested on RHEL7 and OSP5 (i.e. Icehouse)
+
+FROM      systemd_rhel7
+MAINTAINER Daneyon Hansen "daneyonhansen@gmail.com"
+
+### Set the parameters used to configure heat.conf ###
+ENV HOSTNAME heat.example.com
+ENV CFN_HOST 127.0.0.1
+ENV AUTH_ENCRYPTION_KEY changeme
+ENV DB_HOST 127.0.0.1
+ENV DB_PASSWORD changeme
+ENV RABBIT_HOST 127.0.0.1
+ENV KEYSTONE_HOST 127.0.0.1
+ENV KEYSTONE_ADMIN_PORT 35357
+ENV KEYSTONE_PUBLIC_PORT 5000
+ENV SERVICE_TENANT service
+ENV SERVICE_PASSWORD changeme
+ENV DEMO_USER_PASSWORD changeme
+ENV ADMIN_USER_PASSWORD changeme
+### End set the parameters used to configure heat.conf ###
+
+# Set working directory for RUN and CMD instructions.
+WORKDIR /root
+
+# Required Utilities
+RUN yum -y install openssl ntp rubygems
+RUN systemctl enable ntpd
+
+# Tiller Installation. For more info: https://github.com/markround/tiller
+RUN gem install tiller
+ADD data/tiller/common.yaml /etc/tiller/common.yaml
+ADD data/tiller/environments/production.yaml /etc/tiller/environments/production.yaml
+ADD data/tiller/templates/heat.conf.erb /etc/tiller/templates/heat.conf.erb
+
+# Install Heat Packages
+RUN yum -y install openstack-heat-api openstack-heat-api-cfn openstack-heat-engine
+
+# Copy Keystone Credential Files
+ADD data/tiller/templates/admin-openrc.erb /etc/tiller/templates/admin-openrc.erb
+ADD data/tiller/templates/demo-openrc.erb /etc/tiller/templates/demo-openrc.erb
+RUN /usr/local/bin/tiller
+
+# Enable Heat services
+RUN systemctl enable openstack-heat-api
+RUN systemctl enable openstack-heat-api-cfn
+RUN systemctl enable openstack-heat-engine
+
+# Expose Heat TCP ports
+EXPOSE 8000 8004
+
+# Start Init
+CMD ["/usr/sbin/init"]
