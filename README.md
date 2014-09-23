@@ -38,8 +38,6 @@ Although the container does initialize the database used by Heat, it does not cr
 Installation
 ------------
 
-### From Github
-
 From your Docker Registry, set the environment variables used to automate the image building process
 ```
 # Name of the Github repo. Change danehans to your Github repo name if you forked my project.
@@ -117,7 +115,7 @@ export IMAGE_NAME=ouruser/heat
 export CONTAINER_NAME=heat
 export HOSTNAME=heat.example.com
 export DNS_SEARCH=example.com
-
+```
 **Option 1-** Use the run script:
 ```
 . $HOME/docker-heat/data/scripts/run
