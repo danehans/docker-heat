@@ -104,7 +104,7 @@ ENV ADMIN_USER_PASSWORD $ADMIN_USER_PASSWORD
 WORKDIR /root
 
 # Required Utilities
-RUN yum -y install openssh openssl ntp rubygems
+RUN yum -y install openssh openssl ntp rubygems git
 RUN systemctl enable ntpd
 
 # Tiller Installation. For more info: https://github.com/markround/tiller

@@ -160,7 +160,6 @@ Deploy a Heat Stack
 
 Clone the heat-template repo from Github:
 ```
-# yum install -y git
 # git clone https://github.com/openstack/heat-templates.git
 ```
 Source your Keystone credential file:
