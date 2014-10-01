@@ -113,7 +113,7 @@ First, set your environment variables:
 ```
 export IMAGE_NAME=ouruser/heat
 export CONTAINER_NAME=heat
-export HOSTNAME=heat.example.com
+export HEAT_HOSTNAME=heat.example.com
 export DNS_SEARCH=example.com
 ```
 **Option 1-** Use the run script:
